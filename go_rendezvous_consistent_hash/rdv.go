@@ -9,7 +9,7 @@ type Rendezvous struct {
 
 type Hasher func(s string) uint64
 
-func New(nodes []string, hash Hasher) *Rendezvous {
+func NewRendezvous(nodes []string, hash Hasher) *Rendezvous {
 	r := &Rendezvous{
 		nodes:         make(map[string]int, len(nodes)),
 		nodeStr:       make([]string, len(nodes)),

@@ -3,8 +3,12 @@
 package ketama
 
 import (
+	"fmt"
+	"math"
 	"math/rand"
 	"runtime"
+	"sort"
+	"strconv"
 	"testing"
 )
 
@@ -76,4 +80,77 @@ func TestConsistence(t *testing.T) {
 		n2 := ring.Get(key)
 		Must(t, n1.Key() == n2.Key())
 	}
+}
+
+func getServerNodes(nodenum, virtualnum uint) []*Node {
+	nodes := make([]*Node, 0, nodenum)
+	var i uint = 0
+	for ; i < nodenum; i++ {
+		n := NewNode(fmt.Sprintf("127.0.0.1:800%d", i), nil, virtualnum)
+		nodes = append(nodes, n)
+	}
+
+	return nodes
+}
+func Test_Katama_ConsistentHash(t *testing.T) {
+	virtualNodeList := []uint{1, 50, 100, 150, 200, 300, 400, 500}
+	//测试10台服务器
+	var nodeNum uint = 10
+	//测试数据量100W
+	testCount := 1000000
+	for nodeNum <= 30 {
+		nodeNum += 10
+		for _, virtualNode := range virtualNodeList {
+			nodes := getServerNodes(nodeNum, virtualNode)
+			hashRing := NewRing(nodes)
+			distributeMap := make(map[string]int64)
+			for _, node := range nodes {
+				distributeMap[node.NodeLable] = 0
+			}
+			// consistentHash := &Consistent{}
+			// distributeMap := make(map[string]int64)
+			// for i := 1; i <= nodeNum; i++ {
+			// 	serverName := "172.17.0." + strconv.Itoa(i)
+			// 	consistentHash.Add(serverName, virtualNode)
+			// 	distributeMap[serverName] = 0
+			// }
+			//测试100W个数据分布
+			for i := 0; i < testCount; i++ {
+				testName := "testName"
+				node := hashRing.Get(testName + strconv.Itoa(i))
+				distributeMap[node.NodeLable] = distributeMap[node.NodeLable] + 1
+			}
+
+			var keys []string
+			var values []float64
+			for k, v := range distributeMap {
+				keys = append(keys, k)
+				values = append(values, float64(v))
+			}
+			sort.Strings(keys)
+			fmt.Printf("####测试%d个结点,一个结点有%d个虚拟结点,%d条测试数据\n", nodeNum, virtualNode, testCount)
+			// for _, k := range keys {
+			// 	fmt.Printf("服务器地址:%s 分布数据数:%d\n", k, distributeMap[k])
+			// }
+			fmt.Printf("标准差:%f\n\n", getStandardDeviation(values))
+		}
+	}
+}
+
+//获取标准差
+func getStandardDeviation(list []float64) float64 {
+	var total float64
+	for _, item := range list {
+		total += item
+	}
+	//平均值
+	avg := total / float64(len(list))
+
+	var dTotal float64
+	for _, value := range list {
+		dValue := value - avg
+		dTotal += dValue * dValue
+	}
+
+	return math.Sqrt(dTotal / avg)
 }

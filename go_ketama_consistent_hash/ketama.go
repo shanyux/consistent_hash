@@ -11,20 +11,20 @@ import (
 
 // Node is the hashing ring node.
 type Node struct {
-	key    string
-	data   interface{}
-	weight uint
-	hash   uint32
+	NodeLable string
+	data      interface{}
+	weight    uint
+	hash      uint32
 }
 
 // NewNode creates a new Node.
-func NewNode(key string, data interface{}, weight uint) *Node {
-	return &Node{key: key, data: data, weight: weight}
+func NewNode(NodeLable string, data interface{}, weight uint) *Node {
+	return &Node{NodeLable: NodeLable, data: data, weight: weight}
 }
 
-// Key returns the Node key.
+// Key returns the Node NodeLable.
 func (n *Node) Key() string {
-	return n.key
+	return n.NodeLable
 }
 
 // Data returns the Node data.
@@ -50,8 +50,8 @@ type Ring struct {
 }
 
 // alignHash returns hash value with aligment.
-func alignHash(key string, align int) uint32 {
-	b := md5.Sum([]byte(key)) //16字节,4个字节一组
+func alignHash(NodeLable string, align int) uint32 {
+	b := md5.Sum([]byte(NodeLable)) //16字节,4个字节一组
 	return ((uint32(b[3+align*4]&0xff) << 24) |
 		(uint32(b[2+align*4]&0xff) << 16) |
 		(uint32(b[1+align*4]&0xff) << 8) |
@@ -72,13 +72,13 @@ func NewRing(realsNodes []*Node) *Ring {
 	for i := 0; i < len(realsNodes); i++ {
 		node := realsNodes[i]
 		for j := 0; j < int(node.weight)*40; j++ {
-			key := fmt.Sprintf("%s-%d", node.key, j)
+			NodeLable := fmt.Sprintf("%s-%d", node.NodeLable, j)
 			for n := 0; n < 4; n++ {
 				hashRing.virtualNodes[k] = &Node{}
-				hashRing.virtualNodes[k].key = node.key
+				hashRing.virtualNodes[k].NodeLable = node.NodeLable
 				hashRing.virtualNodes[k].weight = node.weight
 				hashRing.virtualNodes[k].data = node.data
-				hashRing.virtualNodes[k].hash = alignHash(key, n)
+				hashRing.virtualNodes[k].hash = alignHash(NodeLable, n)
 				k++
 			}
 		}
@@ -87,9 +87,9 @@ func NewRing(realsNodes []*Node) *Ring {
 	return hashRing
 }
 
-// Get node by key from ring.
+// Get node by NodeLable from ring.
 // Returns nil if the ring is empty.
-func (r *Ring) Get(key string) *Node {
+func (r *Ring) Get(NodeLable string) *Node {
 	if len(r.virtualNodes) == 0 {
 		return nil
 	}
@@ -98,7 +98,7 @@ func (r *Ring) Get(key string) *Node {
 	}
 	left := 0
 	right := len(r.virtualNodes)
-	hash := alignHash(key, 0)
+	hash := alignHash(NodeLable, 0)
 	for {
 		mid := (left + right) / 2
 		if mid == len(r.virtualNodes) {
