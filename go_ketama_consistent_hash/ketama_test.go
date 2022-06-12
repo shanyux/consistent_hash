@@ -45,7 +45,7 @@ func TestBalance(t *testing.T) {
 		NewNode("127.0.0.1:8012", nil, 1),
 	}
 	ring := NewRing(nodes)
-	Must(t, len(ring.nodes) == len(nodes)*160)
+	Must(t, len(ring.virtualNodes) == len(nodes)*160)
 	N := 4096 * len(nodes)
 	m := make(map[string]int, 0)
 	for i := 0; i < N; i++ {
@@ -69,7 +69,7 @@ func TestConsistence(t *testing.T) {
 		NewNode("192.168.0.5:9527", nil, 4),
 	}
 	ring := NewRing(nodes)
-	Must(t, len(ring.nodes) == (1+1+2+2+4)*160)
+	Must(t, len(ring.virtualNodes) == (1+1+2+2+4)*160)
 	for i := 0; i < 1024; i++ {
 		key := RandString(128)
 		n1 := ring.Get(key)

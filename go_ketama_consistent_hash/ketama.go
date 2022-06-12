@@ -46,12 +46,12 @@ func (s ByHash) Less(i, j int) bool { return s[i].hash < s[j].hash }
 
 // Ring is the ketama hashing ring.
 type Ring struct {
-	nodes []*Node
+	virtualNodes []*Node
 }
 
 // alignHash returns hash value with aligment.
 func alignHash(key string, align int) uint32 {
-	b := md5.Sum([]byte(key))
+	b := md5.Sum([]byte(key)) //16字节,4个字节一组
 	return ((uint32(b[3+align*4]&0xff) << 24) |
 		(uint32(b[2+align*4]&0xff) << 16) |
 		(uint32(b[1+align*4]&0xff) << 8) |
@@ -59,68 +59,68 @@ func alignHash(key string, align int) uint32 {
 }
 
 // NewRing creates a new Ring.
-func NewRing(nodes []*Node) *Ring {
-	// Create ring and init its nodes.
-	r := &Ring{}
+func NewRing(realsNodes []*Node) *Ring {
+	// Create ring and init its virtualNodes.
+	hashRing := &Ring{} //哈希环
 	length := 0
-	for i := 0; i < len(nodes); i++ {
-		length += int(nodes[i].weight) * 160
+	for i := 0; i < len(realsNodes); i++ { //物理节点
+		length += int(realsNodes[i].weight) * 4 * 40
 	}
-	r.nodes = make([]*Node, length)
+	hashRing.virtualNodes = make([]*Node, length) //虚拟节点
 	// Init each ring node.
 	k := 0
-	for i := 0; i < len(nodes); i++ {
-		node := nodes[i]
+	for i := 0; i < len(realsNodes); i++ {
+		node := realsNodes[i]
 		for j := 0; j < int(node.weight)*40; j++ {
 			key := fmt.Sprintf("%s-%d", node.key, j)
 			for n := 0; n < 4; n++ {
-				r.nodes[k] = &Node{}
-				r.nodes[k].key = node.key
-				r.nodes[k].weight = node.weight
-				r.nodes[k].data = node.data
-				r.nodes[k].hash = alignHash(key, n)
+				hashRing.virtualNodes[k] = &Node{}
+				hashRing.virtualNodes[k].key = node.key
+				hashRing.virtualNodes[k].weight = node.weight
+				hashRing.virtualNodes[k].data = node.data
+				hashRing.virtualNodes[k].hash = alignHash(key, n)
 				k++
 			}
 		}
 	}
-	sort.Sort(ByHash(r.nodes))
-	return r
+	sort.Sort(ByHash(hashRing.virtualNodes))
+	return hashRing
 }
 
 // Get node by key from ring.
 // Returns nil if the ring is empty.
 func (r *Ring) Get(key string) *Node {
-	if len(r.nodes) == 0 {
+	if len(r.virtualNodes) == 0 {
 		return nil
 	}
-	if len(r.nodes) == 1 {
-		return r.nodes[0]
+	if len(r.virtualNodes) == 1 {
+		return r.virtualNodes[0]
 	}
 	left := 0
-	right := len(r.nodes)
+	right := len(r.virtualNodes)
 	hash := alignHash(key, 0)
 	for {
 		mid := (left + right) / 2
-		if mid == len(r.nodes) {
-			return r.nodes[0]
+		if mid == len(r.virtualNodes) {
+			return r.virtualNodes[0]
 		}
 		var p uint32
-		m := r.nodes[mid].hash
+		m := r.virtualNodes[mid].hash
 		if mid == 0 {
 			p = 0
 		} else {
-			p = r.nodes[mid-1].hash
+			p = r.virtualNodes[mid-1].hash
 		}
-		if hash < m && hash > p {
-			return r.nodes[mid]
+		if hash < m && hash > p { //查找到
+			return r.virtualNodes[mid]
 		}
 		if m < hash {
 			left = mid + 1
 		} else {
 			right = mid - 1
 		}
-		if left > right {
-			return r.nodes[0]
+		if left > right { //哈希环跳圈
+			return r.virtualNodes[0]
 		}
 	}
 }
