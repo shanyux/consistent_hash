@@ -73,6 +73,9 @@ func (r *Rendezvous) Remove(node string) {
 	r.nodes[moved] = nidx
 }
 
+//https://vigna.di.unimi.it/ftp/papers/xorshift.pdf
+//XorShift随机数生成器，也称为移位寄存器生成器，是George Marsaglia发现的一类伪随机数生成器。它是线性反馈移位寄存器（LFSR）的子集，它们允许在软件中进行特别有效的实现，而无需使用过于稀疏的多项式。
+//它的实现基本原理是通过重复取其自身或移位版本的数字的异或来生成其序列中的下一个数字，这使得它具有高效的特征。
 func xorshiftMult64(x uint64) uint64 {
 	x ^= x >> 12 // a
 	x ^= x << 25 // b
